@@ -138,6 +138,41 @@ def pick_distinct_loci(ranked, pos, n, min_dist=1_000_000):
     return picked
 
 
+def top_markers(sel: pd.DataFrame, n: int):
+    """평균 |r| 순으로 유전자당 1개(유전자 미지정 CpG 제외). 유전자 정보가 없으면 순위 그대로."""
+    if "gene" not in sel.columns:
+        return list(sel.index[:n])
+    picked, genes = [], set()
+    for cpg, g in sel["gene"].items():
+        if pd.isna(g) or g in genes:
+            continue
+        picked.append(cpg)
+        genes.add(g)
+        if len(picked) == n:
+            break
+    return picked
+
+
+def load_panel(path) -> list:
+    """비공개 최종 패널 파일(한 줄에 CpG ID 하나, '#' 뒤는 주석)을 읽는다.
+    이 파일은 .gitignore 대상이며, 마커 이름은 화면에도 출력하지 않는다."""
+    import re
+    text = Path(path).read_text(encoding="utf-8-sig", errors="ignore")   # BOM·깨진 주석 무시
+    ids = [l.split("#")[0].strip() for l in text.splitlines()]
+    ids = list(dict.fromkeys(i for i in ids if re.fullmatch(r"cg\d{8}", i) and i != "cg00000000"))
+    if not ids:
+        raise SystemExit(f"{path} 에서 CpG ID(cg + 숫자 8자리)를 찾지 못했습니다.")
+    print(f"최종 패널 파일 사용: 마커 {len(ids)}개 (마커 이름은 출력하지 않음)")
+    return ids
+
+
+def choose_markers(n: int, panel=None) -> list:
+    """--panel 이 있으면 그 패널, 없으면 공개 선별 결과(results/selected_markers.csv)의 상위 n개."""
+    if panel:
+        return load_panel(panel)
+    return top_markers(pd.read_csv(RESULTS / "selected_markers.csv", index_col=0), n)
+
+
 def ranked_labels(n):
     """공개용 마커 표기: 실제 CpG ID 대신 순위."""
     return [f"rank_{i + 1}" for i in range(n)]

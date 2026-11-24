@@ -41,6 +41,10 @@ python src/never_smoker_spread.py --dataset GSE50660 --manifest data/raw/GPL1353
 python src/saliva_transfer.py  --a GSE78874 --b GSE92767 --paired GSE130153
 ```
 
+### 최종 패널로 실행 (로컬 전용)
+
+`configs/panel.example.txt`를 `configs/panel.local.txt`로 복사해 최종 패널의 CpG ID를 한 줄에 하나씩 적은 뒤, 모델·신뢰도·타액 분석에 `--panel configs/panel.local.txt`를 붙입니다. 이 파일은 `.gitignore` 대상이라 저장소에 올라가지 않습니다. Windows PowerShell로 파일을 만들 때는 `-Encoding ascii`를 쓰세요.
+
 ## 4. 결과 저장 위치
 
 - `results/`: 표 형태 결과(로컬 확인용, CpG ID 포함). 저장소에 올리지 않습니다.

@@ -21,8 +21,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold, LeaveOneOut, cross_val_predict
 
-from clock_model import top_markers
-from common import RESULTS, load_dataset, ranked_labels
+from common import RESULTS, choose_markers, load_dataset, ranked_labels
 
 CRIT_R, CRIT_MAD, CRIT_GAIN = 0.80, 6.0, 0.50
 N_REPEATS, N_BOOT = 20, 500
@@ -60,8 +59,9 @@ def main():
     ap.add_argument("--b", default="saliva_B")
     ap.add_argument("--paired", default="paired_bs", help="같은 사람 혈액·타액 쌍 데이터")
     ap.add_argument("--top", type=int, default=8)
+    ap.add_argument("--panel", default=None, help="비공개 최종 패널 파일(예: configs/panel.local.txt)")
     a = ap.parse_args()
-    markers = top_markers(pd.read_csv(RESULTS / "selected_markers.csv", index_col=0), a.top)
+    markers = choose_markers(a.top, a.panel)
     labels = ranked_labels(len(markers))
 
     # Q1 혈액 vs 타액

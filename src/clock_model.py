@@ -32,7 +32,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from common import RESULTS, ROOT, figure_dir, korean_font, load_dataset, mad, r2
+from common import RESULTS, ROOT, choose_markers, figure_dir, korean_font, load_dataset, mad, r2
 
 L1 = [.1, .5, .7, .9, .95, 1.0]
 
@@ -42,21 +42,6 @@ def enet():
     grid = {"alphas": 50} if (major, minor) >= (1, 7) else {"n_alphas": 50}
     return make_pipeline(StandardScaler(),
                          ElasticNetCV(l1_ratio=L1, cv=5, max_iter=5000, random_state=0, **grid))
-
-
-def top_markers(sel, n):
-    """평균 |r| 순으로 유전자당 1개. 유전자 정보가 없으면 순위 그대로."""
-    if "gene" not in sel.columns:
-        return list(sel.index[:n])
-    picked, genes = [], set()
-    for cpg, g in sel["gene"].items():
-        if pd.isna(g) or g in genes:
-            continue
-        picked.append(cpg)
-        genes.add(g)
-        if len(picked) == n:
-            break
-    return picked
 
 
 def Xy(data, name, markers):
@@ -79,15 +64,20 @@ def main():
     ap.add_argument("--datasets", nargs="+", default=["blood_A", "blood_B", "blood_C"])
     ap.add_argument("--final-train", default=None, help="최종 모델 학습 코호트 (기본: 첫 번째)")
     ap.add_argument("--top", type=int, default=8)
+    ap.add_argument("--panel", default=None,
+                    help="비공개 최종 패널 파일(예: configs/panel.local.txt). 없으면 공개 선별 상위 --top 개")
     ap.add_argument("--show-coef", action="store_true")
     a = ap.parse_args()
     final_train = a.final_train or a.datasets[0]
 
     sel = pd.read_csv(RESULTS / "selected_markers.csv", index_col=0)
     cand = list(sel.index)
-    top = top_markers(sel, a.top)
-    print(f"후보 {len(cand)}개 / 소수 마커 {len(top)}개")
-    data = {n: load_dataset(n, cpgs=cand) for n in a.datasets}
+    top = choose_markers(a.top, a.panel)
+    n_top = len(top)
+    OLS = f"소수 마커 {n_top}개 OLS"
+    print(f"후보 {len(cand)}개 / 소수 마커 {n_top}개" + (" (최종 패널)" if a.panel else " (공개 선별)"))
+    need = list(dict.fromkeys(cand + top))
+    data = {n: load_dataset(n, cpgs=need) for n in a.datasets}
     for n, (b, p) in data.items():
         data[n] = (b, p.dropna(subset=["age"]))
         data[n] = (b[data[n][1].index], data[n][1])
@@ -99,11 +89,11 @@ def main():
         Xa, ya = Xy(data, tr, cand)
         en = enet().fit(Xa, ya)
         coef = en.named_steps["elasticnetcv"].coef_
-        en_top = [cand[i] for i in np.argsort(-np.abs(coef))[: a.top]]
+        en_top = [cand[i] for i in np.argsort(-np.abs(coef))[:n_top]]
         models = {
-            f"OLS 상위{a.top}": (LinearRegression().fit(*Xy(data, tr, top)), top),
+            OLS: (LinearRegression().fit(*Xy(data, tr, top)), top),
             f"ENet 후보전체": (en, cand),
-            f"ENet 중요도 상위{a.top} → OLS": (LinearRegression().fit(*Xy(data, tr, en_top)), en_top),
+            f"ENet 중요도 상위{n_top} → OLS": (LinearRegression().fit(*Xy(data, tr, en_top)), en_top),
         }
         overlap = len(set(en_top) & set(top))
         for te in a.datasets:
@@ -114,9 +104,9 @@ def main():
                 p = m.predict(X)
                 rows.append(dict(train=tr, test=te, model=label, MAD=mad(y, p), R2=r2(y, p),
                                  n_used=int((np.abs(coef) > 0).sum()) if "후보전체" in label else len(mk)))
-        print(f"  [{tr}] ENet 중요도 상위{a.top}과 상관 상위{a.top}의 겹침: {overlap}개")
+        print(f"  [{tr}] ENet 중요도 상위{n_top}과 소수 마커의 겹침: {overlap}개")
         if a.show_coef:
-            m = models[f"OLS 상위{a.top}"][0]
+            m = models[OLS][0]
             print("   ", dict(zip(top, np.round(m.coef_, 3))), round(m.intercept_, 3))
     cv = pd.DataFrame(rows).round(3)
     cv.to_csv(RESULTS / "crossval.csv", index=False, encoding="utf-8-sig")
@@ -125,9 +115,9 @@ def main():
 
     # ── Q4: 보정 (최종 학습 코호트 기준) ──
     rows, plots = [], []
-    for label, fit in ((f"OLS 상위{a.top}", lambda X, y: LinearRegression().fit(X, y)),
+    for label, fit in ((OLS, lambda X, y: LinearRegression().fit(X, y)),
                        ("ENet 후보전체", lambda X, y: enet().fit(X, y))):
-        mk = top if label.startswith("OLS") else cand
+        mk = top if label == OLS else cand
         m = fit(*Xy(data, final_train, mk))
         for te in a.datasets:
             if te == final_train:
@@ -138,7 +128,7 @@ def main():
                 rows.append(dict(model=label, test=te, calibration=how, MAD=mad(y_ev, p),
                                  R2=r2(y_ev, p), shift=shift if how == "평행이동" else np.nan,
                                  n_eval=len(y_ev)))
-            if label.startswith("OLS"):
+            if label == OLS:
                 plots.append((te, y_ev, preds["보정 없음"], preds["평행이동"], shift))
     cal = pd.DataFrame(rows).round(3)
     cal.to_csv(RESULTS / "calibration.csv", index=False, encoding="utf-8-sig")
@@ -156,7 +146,7 @@ def main():
                          fontsize=9)
             ax.set_xlabel("실제 나이")
             ax.set_ylabel("예측 나이")
-    fig.suptitle(f"소수 마커({a.top}개) 모델: 예측 나이 vs 실제 나이", fontsize=11)
+    fig.suptitle(f"소수 마커({n_top}개) 모델: 예측 나이 vs 실제 나이", fontsize=11)
     fig.tight_layout()
     out = figure_dir(*a.datasets) / "pred_vs_age.png"
     fig.savefig(out, dpi=130)

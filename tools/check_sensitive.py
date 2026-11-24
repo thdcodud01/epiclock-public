@@ -2,6 +2,7 @@
 
 1) 기본 패턴: 사용자 PC 경로, 비밀번호·키·토큰, IP 주소, 이메일, DB 접속 문자열
 2) 개인 패턴: tools/sensitive_patterns.txt (git에 올리지 않음)
+   + configs/panel.local.txt 가 있으면 그 안의 CpG ID도 자동으로 검사
    한 줄에 하나씩 정규식을 적는다. 사번, 회사명, 상품명, 협력사명, 실명 등.
 3) 데이터 파일 검사: 합성 데이터 폴더 밖의 csv/xlsx/parquet/pkl 이 커밋 대상이면 경고
 
@@ -25,7 +26,7 @@ BASE = [
 ]
 DATA_EXT = {".csv", ".tsv", ".xlsx", ".xls", ".parquet", ".pkl", ".pickle", ".feather", ".h5"}
 ALLOW_DATA_DIR = "data/synthetic/"
-SKIP = {"tools/check_sensitive.py", "tools/sensitive_patterns.txt"}
+SKIP = {"tools/check_sensitive.py", "tools/sensitive_patterns.txt", "configs/panel.local.txt"}
 
 
 def tracked_files():
@@ -42,6 +43,10 @@ def main():
                  if l.strip() and not l.startswith("#")]
     else:
         print("※ tools/sensitive_patterns.txt 가 없어 기본 패턴만 검사합니다.")
+    panel = ROOT / "configs" / "panel.local.txt"      # 비공개 패널의 CpG ID도 자동으로 검사
+    if panel.exists():
+        ids = [l.split("#")[0].strip() for l in panel.read_text(encoding="utf-8").splitlines()]
+        pats += [re.escape(i) for i in ids if i]
     rx = [re.compile(p) for p in pats]
 
     problems = []

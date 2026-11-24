@@ -25,8 +25,7 @@ from sklearn.linear_model import ElasticNetCV, LinearRegression, RidgeCV
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from clock_model import top_markers
-from common import RESULTS, load_dataset, ranked_labels
+from common import RESULTS, choose_markers, load_dataset, ranked_labels
 
 N_BOOT = 1000
 
@@ -68,10 +67,11 @@ def main():
     ap.add_argument("--train", default="blood_A")
     ap.add_argument("--rep", default="blood_rep")
     ap.add_argument("--top", type=int, default=8)
+    ap.add_argument("--panel", default=None, help="비공개 최종 패널 파일(예: configs/panel.local.txt)")
     ap.add_argument("--effect", type=float, default=2.0, help="비교할 기대 변화량(년), 문헌 근거로 지정")
     a = ap.parse_args()
 
-    markers = top_markers(pd.read_csv(RESULTS / "selected_markers.csv", index_col=0), a.top)
+    markers = choose_markers(a.top, a.panel)
     btr, ptr = load_dataset(a.train, cpgs=markers)
     ptr = ptr.dropna(subset=["age"])
     Xtr, ytr = btr[ptr.index].loc[markers].T.values, ptr["age"].values

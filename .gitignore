@@ -27,6 +27,7 @@ figures/synthetic/
 
 # ── 민감 정보 패턴 (개인별, 절대 올리지 않음) ─────────────────
 tools/sensitive_patterns.txt
+configs/*.local.txt
 .env
 *.env
 
