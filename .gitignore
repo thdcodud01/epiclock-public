@@ -1,0 +1,45 @@
+# ── 데이터: 합성 예시 데이터만 올린다 ─────────────────────────
+data/*
+!data/synthetic/
+*.csv
+*.tsv
+!data/synthetic/*.csv
+*.xlsx
+*.xls
+*.parquet
+*.pkl
+*.pickle
+*.feather
+*.h5
+*.idat
+*.txt.gz
+GPL*.txt
+
+# ── 분석 결과: 로컬 확인용 (CpG ID가 들어 있음) ───────────────
+results/
+figures/synthetic/
+
+# ── 문서·압축 파일: 사내 자료가 섞이지 않게 기본 제외 ─────────
+*.pdf
+*.docx
+*.pptx
+*.zip
+
+# ── 민감 정보 패턴 (개인별, 절대 올리지 않음) ─────────────────
+tools/sensitive_patterns.txt
+.env
+*.env
+
+# ── Python / Jupyter / 편집기 ─────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+
+# ── OS ───────────────────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store

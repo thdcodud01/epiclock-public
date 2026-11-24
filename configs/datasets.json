@@ -1,0 +1,68 @@
+{
+  "_설명": "공개 GEO 데이터셋 정의. 파일은 data/raw/<GSE>/ 에 직접 내려받아 둔다. 컬럼 이름은 원 분석 코드 기준이며, 처음 쓸 때 `python src/check_dataset.py <이름>` 으로 매핑을 확인한다.",
+
+  "GSE40279": {
+    "role": "혈액 코호트 (미국, 656명)",
+    "matrix": "data/raw/GSE40279/GSE40279_series_matrix.txt.gz"
+  },
+  "GSE87571": {
+    "role": "혈액 코호트 (스웨덴, 732명) — 학습셋",
+    "matrix": "data/raw/GSE87571/GSE87571_series_matrix.txt.gz",
+    "beta_files": ["data/raw/GSE87571/GSE87571_matrix1of2.txt.gz",
+                   "data/raw/GSE87571/GSE87571_matrix2of2.txt.gz"],
+    "title_key_regex": "^(X\\d+)",
+    "col_key_regex": "^(X\\d+)$"
+  },
+  "GSE55763": {
+    "role": "혈액 코호트 (영국, 인구집단 2,664명)",
+    "matrix": "data/raw/GSE55763/GSE55763_series_matrix.txt.gz",
+    "beta_files": ["data/raw/GSE55763/GSE55763_normalized_betas.txt.gz"],
+    "title_key_regex": "(\\d{9,}_R\\d{2}C\\d{2})",
+    "col_key_regex": "^(\\d{9,}_R\\d{2}C\\d{2})$",
+    "filter": {"col": "dataset", "contains": "population study"}
+  },
+  "GSE55763_rep": {
+    "role": "같은 DNA를 두 번 측정한 technical replicate 쌍 (측정 신뢰도 분석용)",
+    "matrix": "data/raw/GSE55763/GSE55763_series_matrix.txt.gz",
+    "beta_files": ["data/raw/GSE55763/GSE55763_normalized_betas.txt.gz"],
+    "title_key_regex": "(\\d{9,}_R\\d{2}C\\d{2})",
+    "col_key_regex": "^(\\d{9,}_R\\d{2}C\\d{2})$",
+    "replicates": {"from": "description", "regex": "group\\s+(\\d+),\\s*sample\\s+(\\d+)"}
+  },
+  "GSE50660": {
+    "role": "흡연 코호트 (discovery, 464명)",
+    "matrix": "data/raw/GSE50660/GSE50660_series_matrix.txt.gz",
+    "smoking": {"col": "smoking", "map": {"0": "never", "1": "former", "2": "current"}}
+  },
+  "GSE42861": {
+    "role": "흡연 코호트 (replication, 689명, 류마티스관절염 환자+대조군)",
+    "matrix": "data/raw/GSE42861/GSE42861_series_matrix.txt.gz",
+    "smoking": {"col_regex": "smok", "contains": {"never": "never", "former": "former", "ex": "former",
+                                                  "current": "current", "occasional": "current"}},
+    "disease": {"col_regex": "disease|subject", "control_contains": ["normal", "control"]}
+  },
+  "GSE294810": {
+    "role": "천식 코호트. 논문의 대기오염 노출값이 GEO에 공개되지 않아 환경노출 축 검증 불가(원 분석 결론과 동일). beta는 supplementary 파일에 있음",
+    "matrix": "data/raw/GSE294810/GSE294810_series_matrix.txt.gz",
+    "exposures": {"pm25": "pm2_5|pm25", "pm10": "pm10", "no2": "no2", "o3": "o3|ozone",
+                  "ec": "elemental_carbon", "nox": "nox"},
+    "smoking": {"col_regex": "smok", "contains": {"never": "never", "non": "never", "former": "former",
+                                                  "current": "current"}},
+    "filter": {"col_regex": "cell_type|tissue|source", "contains": "blood|whole|pbl"}
+  },
+  "GSE78874": {
+    "role": "타액 코호트 (미국, 259명)",
+    "matrix": "data/raw/GSE78874/GSE78874_series_matrix.txt.gz"
+  },
+  "GSE92767": {
+    "role": "타액 코호트 (한국인 남성, 54명)",
+    "matrix": "data/raw/GSE92767/GSE92767_series_matrix.txt.gz"
+  },
+  "GSE130153": {
+    "role": "같은 사람의 혈액·타액 쌍 (나이 정보 없음, 조직 간 차이 비교용)",
+    "matrix": "data/raw/GSE130153/GSE130153_series_matrix.txt.gz",
+    "subject": {"from": "source_name_ch1", "regex": "^([^_]+)"},
+    "tissue_col": "tissue",
+    "filter": {"col": "test_series", "contains": "^test$"}
+  }
+}
